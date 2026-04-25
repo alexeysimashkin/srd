@@ -53,7 +53,8 @@
         </div>
         <div id="tabloPanel" class="panel active">
             <div class="tablo">
-                <table id="flightsTable"><thead><tr><th>Время вылета</th><th>Рейс</th><th>Направление</th><th>Код IATA</th><th>Ожидаемое время</th><th>Статус</th></thead><tbody id="flightsList"><tr><td colspan="6" class="loading">Загрузка...</td></tr></tbody></table>
+                <table id="flightsTable"><thead><tr><th>Время вылета</th><th>Рейс</th><th>Направление</th><th>Код IATA</th><th>Ожидаемое время</th><th>Статус</th></thead><tbody id="flightsList"><tr><td colspan="6" class="loading">Загрузка...</td></tr></tbody>
+                </table>
             </div>
         </div>
         <div id="adminPanel" class="panel">
@@ -80,7 +81,8 @@
             <h3 style="margin-top:40px">📋 Управление рейсами</h3>
             <div class="tablo">
                 <table><thead><tr><th>Рейс</th><th>Направление</th><th>Время вылета</th><th>Статус</th><th>Действия</th></thead>
-                <tbody id="adminFlightsList"></tbody></table>
+                <tbody id="adminFlightsList"></tbody>
+                </table>
             </div>
             <div id="editPanel" style="display:none; background:#f0f8ff; border:2px solid #0277bd; border-radius:10px; padding:20px; margin-top:20px">
                 <h3>✏️ Редактировать рейс</h3>
@@ -106,10 +108,7 @@
     </div>
 
     <script>
-        // ========== ГОТОВЫЙ БЕСПЛАТНЫЙ API (уже работает) ==========
-        // Данные видны всем пользователям, ничего настраивать не нужно
-        const API_URL = 'https://672d346afd8979715642e5b7.mockapi.io/api/v1/flights';
-        
+        // Всё работает! Тестовый рейс уже есть на сегодня.
         let flights = [];
         let editId = null;
         
@@ -119,18 +118,34 @@
             return new Date(utc + (5 * 3600000));
         }
         
-        async function loadFlights() {
-            try {
-                const response = await fetch(API_URL);
-                if (!response.ok) throw new Error('Ошибка загрузки');
-                flights = await response.json();
-                // Фильтруем мусорные записи
-                flights = flights.filter(f => f.flightNumber && f.flightNumber !== 'temp');
-                renderAll();
-            } catch(e) {
-                console.error(e);
-                document.getElementById('flightsList').innerHTML = '<tr><td colspan="6" class="loading">Ошибка загрузки. Проверьте интернет.</td></tr>';
+        // Загрузка из localStorage
+        function loadFlights() {
+            const saved = localStorage.getItem('sverdlovskFlights');
+            if (saved) {
+                flights = JSON.parse(saved);
+            } else {
+                // Тестовый рейс на сегодня
+                const now = getCurrentTimeGMT5();
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                flights = [{
+                    id: Date.now(),
+                    flightNumber: 'AS-477',
+                    destination: 'Самара',
+                    iataCode: 'KUF',
+                    departureTime: new Date(today.getTime() + 9*3600000 + 30*60000).toISOString(),
+                    expectedTime: '',
+                    regStart: new Date(today.getTime() + 6*3600000 + 30*60000).toISOString(),
+                    regEnd: new Date(today.getTime() + 8*3600000 + 50*60000).toISOString(),
+                    boardingStart: new Date(today.getTime() + 8*3600000 + 55*60000).toISOString(),
+                    boardingEnd: new Date(today.getTime() + 9*3600000 + 10*60000).toISOString()
+                }];
+                saveFlights();
             }
+            renderAll();
+        }
+        
+        function saveFlights() {
+            localStorage.setItem('sverdlovskFlights', JSON.stringify(flights));
         }
         
         function getFlightStatus(flight) {
@@ -198,9 +213,10 @@
             renderAdminTable();
         }
         
-        document.getElementById('flightForm').addEventListener('submit', async (e) => {
+        document.getElementById('flightForm').addEventListener('submit', (e) => {
             e.preventDefault();
             const newFlight = {
+                id: Date.now(),
                 flightNumber: document.getElementById('flightNumber').value,
                 destination: document.getElementById('destination').value,
                 iataCode: document.getElementById('iataCode').value,
@@ -211,25 +227,14 @@
                 boardingStart: document.getElementById('boardingStart').value || '',
                 boardingEnd: document.getElementById('boardingEnd').value || ''
             };
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(newFlight)
-                });
-                if (response.ok) {
-                    alert('✅ Рейс добавлен! Все пользователи увидят его.');
-                    loadFlights();
-                    e.target.reset();
-                } else {
-                    alert('Ошибка при добавлении');
-                }
-            } catch(e) {
-                alert('Ошибка: ' + e.message);
-            }
+            flights.push(newFlight);
+            saveFlights();
+            renderAll();
+            e.target.reset();
+            alert('✅ Рейс добавлен!');
         });
         
-        async function openEdit(id) {
+        function openEdit(id) {
             const flight = flights.find(f => f.id == id);
             if (!flight) return;
             editId = id;
@@ -245,29 +250,25 @@
             document.getElementById('editPanel').style.display = 'block';
         }
         
-        async function saveEdit() {
-            const updatedFlight = {
-                flightNumber: document.getElementById('edit_flightNumber').value,
-                destination: document.getElementById('edit_destination').value,
-                iataCode: document.getElementById('edit_iataCode').value,
-                departureTime: document.getElementById('edit_departureTime').value,
-                expectedTime: document.getElementById('edit_expectedTime').value || '',
-                regStart: document.getElementById('edit_regStart').value || '',
-                regEnd: document.getElementById('edit_regEnd').value || '',
-                boardingStart: document.getElementById('edit_boardingStart').value || '',
-                boardingEnd: document.getElementById('edit_boardingEnd').value || ''
-            };
-            try {
-                await fetch(`${API_URL}/${editId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(updatedFlight)
-                });
-                alert('✅ Изменения сохранены!');
+        function saveEdit() {
+            const index = flights.findIndex(f => f.id == editId);
+            if (index !== -1) {
+                flights[index] = {
+                    ...flights[index],
+                    flightNumber: document.getElementById('edit_flightNumber').value,
+                    destination: document.getElementById('edit_destination').value,
+                    iataCode: document.getElementById('edit_iataCode').value,
+                    departureTime: document.getElementById('edit_departureTime').value,
+                    expectedTime: document.getElementById('edit_expectedTime').value || '',
+                    regStart: document.getElementById('edit_regStart').value || '',
+                    regEnd: document.getElementById('edit_regEnd').value || '',
+                    boardingStart: document.getElementById('edit_boardingStart').value || '',
+                    boardingEnd: document.getElementById('edit_boardingEnd').value || ''
+                };
+                saveFlights();
+                renderAll();
                 cancelEdit();
-                loadFlights();
-            } catch(e) {
-                alert('Ошибка: ' + e.message);
+                alert('✅ Изменения сохранены!');
             }
         }
         
@@ -276,15 +277,11 @@
             editId = null;
         }
         
-        async function deleteFlight(id) {
+        function deleteFlight(id) {
             if (confirm('Удалить рейс?')) {
-                try {
-                    await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
-                    alert('🗑️ Рейс удалён!');
-                    loadFlights();
-                } catch(e) {
-                    alert('Ошибка удаления');
-                }
+                flights = flights.filter(f => f.id != id);
+                saveFlights();
+                renderAll();
             }
         }
         
@@ -303,12 +300,12 @@
         function updateCurrentTime() {
             const now = getCurrentTimeGMT5();
             document.getElementById('currentTime').innerHTML = `🕐 Текущее время (GMT+5): ${now.toLocaleString('ru-RU')}`;
-            renderFlightsTable();
+            renderAll();
         }
         
         loadFlights();
         updateCurrentTime();
-        setInterval(() => updateCurrentTime(), 1000);
+        setInterval(updateCurrentTime, 1000);
     </script>
 </body>
 </html>
