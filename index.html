@@ -2,304 +2,575 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Аэропорт Свердловский - Онлайн табло</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Онлайн-табло - Аэропорт Свердловский (SRD)</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', sans-serif; background: #e0f0ff; padding: 20px; }
-        .container { max-width: 1300px; margin: 0 auto; }
-        .header { background: linear-gradient(135deg, #0277bd, #01579b); border-radius: 15px; padding: 20px 30px; margin-bottom: 25px; border-left: 5px solid #ffd700; }
-        .header h1 { color: white; font-size: 28px; }
-        .header p { color: #ffd700; margin-top: 8px; }
-        .time { text-align: right; background: white; padding: 12px 20px; border-radius: 10px; margin-bottom: 20px; font-weight: bold; color: #0277bd; }
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-        .tab { background: #ccc; border: none; padding: 10px 25px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        .tab.active { background: #0277bd; color: white; }
-        .panel { display: none; background: white; border-radius: 15px; padding: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        .panel.active { display: block; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background: #0277bd; color: white; }
-        .status { padding: 4px 12px; border-radius: 15px; font-size: 12px; font-weight: bold; display: inline-block; }
-        .status-reg { background: #2196f3; color: white; }
-        .status-board { background: #ff9800; color: white; }
-        .status-dep { background: #4caf50; color: white; }
-        .status-wait { background: #9e9e9e; color: white; }
-        input, select { width: 100%; padding: 10px; margin: 5px 0 15px 0; border: 1px solid #ddd; border-radius: 5px; }
-        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
-        button { background: #0277bd; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        button:hover { background: #01579b; }
-        .edit-btn { background: #ff9800; padding: 5px 10px; font-size: 12px; margin-right: 5px; }
-        .delete-btn { background: #f44336; padding: 5px 10px; font-size: 12px; }
-        .edit-panel { background: #f0f8ff; border: 2px solid #0277bd; border-radius: 10px; padding: 20px; margin-top: 20px; }
-        .hidden { display: none; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .airport-header {
+            background: white;
+            border-radius: 20px;
+            padding: 25px 35px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border-left: 5px solid #ffd700;
+        }
+
+        .airport-name {
+            font-size: 32px;
+            font-weight: bold;
+            color: #1a237e;
+        }
+
+        .airport-code {
+            font-size: 16px;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        .current-time {
+            background: rgba(0,0,0,0.7);
+            color: #ffd700;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: right;
+            font-size: 20px;
+            font-family: monospace;
+            margin-bottom: 20px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .tab-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            background: #ffd700;
+            color: #1a237e;
+        }
+
+        .tab-btn:hover {
+            background: #ffd700;
+            color: #1a237e;
+        }
+
+        .panel {
+            display: none;
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .panel.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .btn {
+            background: #1a237e;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: #ffd700;
+            color: #1a237e;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: #1a237e;
+            color: white;
+        }
+
+        .status {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            display: inline-block;
+        }
+
+        .status-registration { background: #2196f3; color: white; }
+        .status-boarding { background: #ff9800; color: white; }
+        .status-departed { background: #4caf50; color: white; }
+        .status-scheduled { background: #9e9e9e; color: white; }
+        .status-finished { background: #607d8b; color: white; }
+
+        .edit-btn, .delete-btn {
+            padding: 5px 10px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .edit-btn {
+            background: #2196f3;
+            color: white;
+        }
+
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+        }
+
+        h3 {
+            margin-bottom: 20px;
+            color: #1a237e;
+        }
+
+        .sync-status {
+            font-size: 12px;
+            color: #4caf50;
+            margin-top: 10px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
-<div class="container">
-    <div class="header">
-        <h1>✈️ Аэропорт Свердловский (Екатеринбург)</h1>
-        <p>Код IATA: SRD | GMT+5</p>
-    </div>
-    <div class="time" id="currentTime"></div>
-    
-    <div class="tabs">
-        <button class="tab active" onclick="showPanel('tablo')">📋 Табло рейсов</button>
-        <button class="tab" onclick="showPanel('admin')">⚙️ Админ-панель</button>
-    </div>
-    
-    <div id="tabloPanel" class="panel active">
-        <table id="tabloTable">
-            <thead><tr><th>Время</th><th>Рейс</th><th>Направление</th><th>Код</th><th>Ожидание</th><th>Статус</th></tr></thead>
-            <tbody id="flightsList"><tr><td colspan="6" style="text-align:center">Загрузка...</td></tr></tbody>
-        </table>
-    </div>
-    
-    <div id="adminPanel" class="panel">
-        <h3>➕ Добавить рейс</h3>
-        <form id="addForm">
-            <div class="form-row">
-                <div><label>Номер рейса</label><input type="text" id="flightNumber" required></div>
-                <div><label>Направление</label><input type="text" id="destination" required></div>
-                <div><label>Код IATA</label><input type="text" id="iataCode" required></div>
+    <div class="container">
+        <div class="airport-header">
+            <div class="airport-name">
+                ✈️ Аэропорт Свердловский (Екатеринбург)
             </div>
-            <div class="form-row">
-                <div><label>Время вылета</label><input type="datetime-local" id="departureTime" required></div>
-                <div><label>Ожидаемое время</label><input type="datetime-local" id="expectedTime"></div>
+            <div class="airport-code">
+                Код IATA: SRD | GMT+5
             </div>
-            <div class="form-row">
-                <div><label>Начало регистрации</label><input type="datetime-local" id="regStart"></div>
-                <div><label>Конец регистрации</label><input type="datetime-local" id="regEnd"></div>
-                <div><label>Начало посадки</label><input type="datetime-local" id="boardingStart"></div>
-                <div><label>Конец посадки</label><input type="datetime-local" id="boardingEnd"></div>
+        </div>
+
+        <div class="current-time" id="currentTime"></div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showPanel('tablo')">📋 Табло рейсов</button>
+            <button class="tab-btn" onclick="showPanel('admin')">⚙️ Админ-панель</button>
+        </div>
+
+        <div id="tabloPanel" class="panel active">
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Время вылета</th>
+                            <th>Рейс</th>
+                            <th>Направление</th>
+                            <th>Код IATA</th>
+                            <th>Ожидаемое время</th>
+                            <th>Статус</th>
+                        </tr>
+                    </thead>
+                    <tbody id="flightsList"></tbody>
+                </table>
             </div>
-            <button type="submit">✈️ Добавить</button>
-        </form>
-        
-        <h3 style="margin-top:30px">📋 Все рейсы</h3>
-        <table>
-            <thead><tr><th>Рейс</th><th>Направление</th><th>Время</th><th>Статус</th><th>Действия</th></tr></thead>
-            <tbody id="adminList"><tr><td colspan="5" style="text-align:center">Загрузка...</td></tr></tbody>
-        </table>
-        
-        <div id="editPanel" class="edit-panel hidden">
-            <h3>✏️ Редактировать рейс</h3>
-            <div class="form-row">
-                <div><label>Номер рейса</label><input type="text" id="edit_flightNumber"></div>
-                <div><label>Направление</label><input type="text" id="edit_destination"></div>
-                <div><label>Код IATA</label><input type="text" id="edit_iataCode"></div>
+        </div>
+
+        <div id="adminPanel" class="panel">
+            <h3>➕ Добавить новый рейс</h3>
+            <form id="flightForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Номер рейса *</label>
+                        <input type="text" id="flightNumber" required placeholder="AS-477">
+                    </div>
+                    <div class="form-group">
+                        <label>Направление *</label>
+                        <input type="text" id="destination" required placeholder="Санкт-Петербург">
+                    </div>
+                    <div class="form-group">
+                        <label>Код IATA *</label>
+                        <input type="text" id="iataCode" required placeholder="LED">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Время вылета (план) *</label>
+                        <input type="datetime-local" id="departureTime" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Ожидаемое время вылета</label>
+                        <input type="datetime-local" id="expectedTime">
+                    </div>
+                </div>
+                
+                <h3 style="margin-top: 20px;">🕐 Служебная информация</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Начало регистрации</label>
+                        <input type="datetime-local" id="regStart">
+                    </div>
+                    <div class="form-group">
+                        <label>Конец регистрации</label>
+                        <input type="datetime-local" id="regEnd">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Начало посадки</label>
+                        <input type="datetime-local" id="boardingStart">
+                    </div>
+                    <div class="form-group">
+                        <label>Конец посадки</label>
+                        <input type="datetime-local" id="boardingEnd">
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn">✈️ Добавить рейс</button>
+            </form>
+
+            <h3 style="margin-top: 40px;">📋 Управление рейсами</h3>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Рейс</th>
+                            <th>Направление</th>
+                            <th>Время вылета</th>
+                            <th>Статус</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminFlightsList"></tbody>
+                </table>
             </div>
-            <div class="form-row">
-                <div><label>Время вылета</label><input type="datetime-local" id="edit_departureTime"></div>
-                <div><label>Ожидаемое время</label><input type="datetime-local" id="edit_expectedTime"></div>
-            </div>
-            <div class="form-row">
-                <div><label>Начало регистрации</label><input type="datetime-local" id="edit_regStart"></div>
-                <div><label>Конец регистрации</label><input type="datetime-local" id="edit_regEnd"></div>
-                <div><label>Начало посадки</label><input type="datetime-local" id="edit_boardingStart"></div>
-                <div><label>Конец посадки</label><input type="datetime-local" id="edit_boardingEnd"></div>
-            </div>
-            <button onclick="saveEdit()">💾 Сохранить</button>
-            <button onclick="cancelEdit()">❌ Отмена</button>
+            
+            <div class="sync-status" id="syncStatus"></div>
         </div>
     </div>
-</div>
 
-<script>
-    // ========== ВСТАВЬ СВОИ ССЫЛКИ СЮДА ==========
-    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRTcxR0rJrEF29XEA-7lc52-sq7d9bTt2pmy7fCkh-m8oHe9KOklSl0560vYSsrsNWOFt7NDgdNo78a/pub?output=csv";
-    const API_URL = "https://script.google.com/macros/s/AKfycbz_0qZEoVViGb2DH11ZLvoVv2K08ptNFhS2pCofMlRstJ3Yq8hzpHQpvAeOIAP88arJSg/exec";
-    // ============================================
-    
-    let flights = [];
-    let editId = null;
-    
-    function getGMT5() {
-        let now = new Date();
-        return new Date(now.getTime() + (5 * 60 - now.getTimezoneOffset()) * 60000);
-    }
-    
-    async function loadFlights() {
-        try {
-            let res = await fetch(CSV_URL + '?t=' + Date.now());
-            let text = await res.text();
-            let rows = text.split('\n').slice(1);
-            flights = [];
-            for(let row of rows) {
-                let cols = row.split(',');
-                if(cols.length >= 5 && cols[0] && cols[0] !== 'id') {
-                    flights.push({
-                        id: cols[0],
-                        flightNumber: cols[1],
-                        destination: cols[2],
-                        iataCode: cols[3],
-                        departureTime: cols[4],
-                        expectedTime: cols[5] || '',
-                        regStart: cols[6] || '',
-                        regEnd: cols[7] || '',
-                        boardingStart: cols[8] || '',
-                        boardingEnd: cols[9] || ''
-                    });
+    <script>
+        // ========== НАСТРОЙКИ TELEGRAM ==========
+        const BOT_TOKEN = "8719498122:AAEvNxfR67uSqpbWDY-4KWS7SlT_OKKt48s";  // Замени на токен от BotFather
+        const CHAT_ID = "5840521297";     // Замени на свой chat_id
+        // ========================================
+        
+        let flights = [];
+        
+        // Функция для получения времени GMT+5
+        function getCurrentTimeGMT5() {
+            const now = new Date();
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            return new Date(utc + (5 * 3600000));
+        }
+        
+        // Загрузка из Telegram (облачное хранилище)
+        async function loadFromTelegram() {
+            if (BOT_TOKEN === "8719498122:AAEvNxfR67uSqpbWDY-4KWS7SlT_OKKt48s") {
+                // Демо-режим: загружаем из localStorage
+                const saved = localStorage.getItem('sverdlovskFlights');
+                if (saved) {
+                    flights = JSON.parse(saved);
+                } else {
+                    // Тестовый рейс
+                    const now = getCurrentTimeGMT5();
+                    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    flights = [{
+                        id: Date.now(),
+                        flightNumber: 'AS-477',
+                        destination: 'Самара',
+                        iataCode: 'KUF',
+                        departureTime: new Date(today.getTime() + 9*3600000 + 30*60000).toISOString(),
+                        expectedTime: '',
+                        regStart: new Date(today.getTime() + 6*3600000 + 30*60000).toISOString(),
+                        regEnd: new Date(today.getTime() + 8*3600000 + 50*60000).toISOString(),
+                        boardingStart: new Date(today.getTime() + 8*3600000 + 55*60000).toISOString(),
+                        boardingEnd: new Date(today.getTime() + 9*3600000 + 10*60000).toISOString()
+                    }];
+                }
+                renderAll();
+                document.getElementById('syncStatus').innerHTML = '💾 Данные сохраняются в браузере';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=/start`);
+                const url = `https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?limit=1`;
+                const res = await fetch(url);
+                const data = await res.json();
+                
+                if (data.ok && data.result.length > 0) {
+                    const lastMsg = data.result[data.result.length - 1];
+                    if (lastMsg.message && lastMsg.message.text && lastMsg.message.text !== '/start') {
+                        try {
+                            flights = JSON.parse(lastMsg.message.text);
+                        } catch(e) {
+                            flights = [];
+                        }
+                    }
+                }
+                renderAll();
+                document.getElementById('syncStatus').innerHTML = '✅ Данные синхронизируются через Telegram';
+            } catch(e) {
+                console.error('Ошибка загрузки из Telegram:', e);
+                const saved = localStorage.getItem('sverdlovskFlights');
+                if (saved) flights = JSON.parse(saved);
+                renderAll();
+                document.getElementById('syncStatus').innerHTML = '⚠️ Telegram не подключён, данные в браузере';
+            }
+        }
+        
+        // Сохранение в Telegram
+        async function saveToTelegram() {
+            if (BOT_TOKEN !== "8719498122:AAEvNxfR67uSqpbWDY-4KWS7SlT_OKKt48s") {
+                try {
+                    const dataToSave = JSON.stringify(flights);
+                    const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(dataToSave)}`;
+                    await fetch(url);
+                } catch(e) {
+                    console.error('Ошибка сохранения в Telegram:', e);
                 }
             }
+            localStorage.setItem('sverdlovskFlights', JSON.stringify(flights));
+        }
+        
+        // Определение статуса рейса
+        function getFlightStatus(flight) {
+            const now = getCurrentTimeGMT5();
+            const depTime = new Date(flight.departureTime);
+            const regStart = flight.regStart ? new Date(flight.regStart) : null;
+            const regEnd = flight.regEnd ? new Date(flight.regEnd) : null;
+            const boardStart = flight.boardingStart ? new Date(flight.boardingStart) : null;
+            const boardEnd = flight.boardingEnd ? new Date(flight.boardingEnd) : null;
+            
+            if (now > depTime) return { text: '✈️ ВЫЛЕТЕЛ', class: 'status-departed' };
+            if (boardEnd && now > boardEnd) return { text: '🔒 ПОСАДКА ЗАКОНЧЕНА', class: 'status-finished' };
+            if (boardStart && now >= boardStart && (!boardEnd || now <= boardEnd)) return { text: '🎫 ПОСАДКА', class: 'status-boarding' };
+            if (regEnd && now > regEnd) return { text: '⏰ РЕГИСТРАЦИЯ ЗАКОНЧЕНА', class: 'status-finished' };
+            if (regStart && now >= regStart && (!regEnd || now <= regEnd)) return { text: '✅ РЕГИСТРАЦИЯ', class: 'status-registration' };
+            
+            return { text: '⏳ ОЖИДАЕТСЯ', class: 'status-scheduled' };
+        }
+        
+        // Отображение таблицы для пассажиров
+        function renderFlightsTable() {
+            const tbody = document.getElementById('flightsList');
+            if (flights.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">Нет рейсов</td></tr>';
+                return;
+            }
+            
+            const sorted = [...flights].sort((a,b) => new Date(a.departureTime) - new Date(b.departureTime));
+            tbody.innerHTML = sorted.map(flight => {
+                const status = getFlightStatus(flight);
+                const depTime = new Date(flight.departureTime);
+                const expected = flight.expectedTime ? new Date(flight.expectedTime) : null;
+                
+                return `
+                    <tr>
+                        <td>${depTime.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'})}</td>
+                        <td><strong>${flight.flightNumber}</strong></td>
+                        <td>${flight.destination}</td>
+                        <td>${flight.iataCode}</td>
+                        <td>${expected ? expected.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}) : '—'}</td>
+                        <td><span class="status ${status.class}">${status.text}</span></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        // Отображение админ-панели
+        function renderAdminTable() {
+            const tbody = document.getElementById('adminFlightsList');
+            if (flights.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">Нет рейсов</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = flights.map(flight => {
+                const status = getFlightStatus(flight);
+                const depTime = new Date(flight.departureTime);
+                
+                return `
+                    <tr>
+                        <td>${flight.flightNumber}</td>
+                        <td>${flight.destination} (${flight.iataCode})</td>
+                        <td>${depTime.toLocaleString()}</td>
+                        <td><span class="status ${status.class}">${status.text}</span></td>
+                        <td>
+                            <button class="edit-btn" onclick="editFlight('${flight.id}')">✏️ Ред.</button>
+                            <button class="delete-btn" onclick="deleteFlight('${flight.id}')">🗑️ Удалить</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        function renderAll() {
+            renderFlightsTable();
+            renderAdminTable();
+        }
+        
+        // Добавление рейса
+        document.getElementById('flightForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const newFlight = {
+                id: Date.now(),
+                flightNumber: document.getElementById('flightNumber').value,
+                destination: document.getElementById('destination').value,
+                iataCode: document.getElementById('iataCode').value,
+                departureTime: document.getElementById('departureTime').value,
+                expectedTime: document.getElementById('expectedTime').value || '',
+                regStart: document.getElementById('regStart').value || '',
+                regEnd: document.getElementById('regEnd').value || '',
+                boardingStart: document.getElementById('boardingStart').value || '',
+                boardingEnd: document.getElementById('boardingEnd').value || ''
+            };
+            
+            flights.push(newFlight);
+            await saveToTelegram();
             renderAll();
-        } catch(e) {
-            console.error(e);
-        }
-    }
-    
-    function getStatus(flight) {
-        let now = getGMT5();
-        let dep = new Date(flight.departureTime);
-        let regStart = flight.regStart ? new Date(flight.regStart) : null;
-        let regEnd = flight.regEnd ? new Date(flight.regEnd) : null;
-        let boardStart = flight.boardingStart ? new Date(flight.boardingStart) : null;
-        let boardEnd = flight.boardingEnd ? new Date(flight.boardingEnd) : null;
-        
-        if(now > dep) return { text: '✈️ ВЫЛЕТЕЛ', class: 'status-dep' };
-        if(boardEnd && now > boardEnd) return { text: '🔒 ПОСАДКА ЗАКРЫТА', class: 'status-wait' };
-        if(boardStart && now >= boardStart) return { text: '🎫 ПОСАДКА', class: 'status-board' };
-        if(regEnd && now > regEnd) return { text: '⏰ РЕГИСТРАЦИЯ ЗАКРЫТА', class: 'status-wait' };
-        if(regStart && now >= regStart) return { text: '✅ РЕГИСТРАЦИЯ', class: 'status-reg' };
-        return { text: '⏳ ОЖИДАЕТСЯ', class: 'status-wait' };
-    }
-    
-    function renderAll() {
-        let sorted = [...flights].sort((a,b) => new Date(a.departureTime) - new Date(b.departureTime));
-        
-        // Табло
-        let tbody = document.getElementById('flightsList');
-        if(sorted.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6">Нет рейсов</td></tr>';
-        } else {
-            tbody.innerHTML = sorted.map(f => {
-                let status = getStatus(f);
-                let dep = new Date(f.departureTime);
-                let exp = f.expectedTime ? new Date(f.expectedTime) : null;
-                return `<tr>
-                    <td>${dep.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'})}</td>
-                    <td><b>${f.flightNumber}</b></td>
-                    <td>${f.destination}</td>
-                    <td>${f.iataCode}</td>
-                    <td>${exp ? exp.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}) : '—'}</td>
-                    <td><span class="status ${status.class}">${status.text}</span></td>
-                </tr>`;
-            }).join('');
-        }
-        
-        // Админка
-        let adminBody = document.getElementById('adminList');
-        if(flights.length === 0) {
-            adminBody.innerHTML = '<tr><td colspan="5">Нет рейсов</td></tr>';
-        } else {
-            adminBody.innerHTML = flights.map(f => {
-                let status = getStatus(f);
-                let dep = new Date(f.departureTime);
-                return `<tr>
-                    <td>${f.flightNumber}</td>
-                    <td>${f.destination} (${f.iataCode})</td>
-                    <td>${dep.toLocaleString()}</td>
-                    <td><span class="status ${status.class}">${status.text}</span></td>
-                    <td>
-                        <button class="edit-btn" onclick="openEdit('${f.id}')">Ред.</button>
-                        <button class="delete-btn" onclick="deleteFlight('${f.id}')">Удл</button>
-                    </td>
-                </tr>`;
-            }).join('');
-        }
-    }
-    
-    document.getElementById('addForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        let flight = {
-            flightNumber: document.getElementById('flightNumber').value,
-            destination: document.getElementById('destination').value,
-            iataCode: document.getElementById('iataCode').value,
-            departureTime: document.getElementById('departureTime').value,
-            expectedTime: document.getElementById('expectedTime').value || '',
-            regStart: document.getElementById('regStart').value || '',
-            regEnd: document.getElementById('regEnd').value || '',
-            boardingStart: document.getElementById('boardingStart').value || '',
-            boardingEnd: document.getElementById('boardingEnd').value || ''
-        };
-        try {
-            await fetch(API_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(flight) });
-            alert('Добавлено! Обнови страницу через 5 сек');
-            setTimeout(() => loadFlights(), 3000);
             e.target.reset();
-        } catch(err) {
-            alert('Ошибка: ' + err.message);
+            alert('✅ Рейс добавлен!');
+        });
+        
+        // Редактирование рейса
+        function editFlight(id) {
+            const flight = flights.find(f => f.id == id);
+            if (!flight) return;
+            
+            const newFlightNumber = prompt('Номер рейса:', flight.flightNumber);
+            if (!newFlightNumber) return;
+            
+            const newDestination = prompt('Направление:', flight.destination);
+            if (!newDestination) return;
+            
+            const newIataCode = prompt('Код IATA:', flight.iataCode);
+            if (!newIataCode) return;
+            
+            const newDepTime = prompt('Время вылета (ГГГГ-ММ-ДДTЧЧ:ММ):', flight.departureTime);
+            if (!newDepTime) return;
+            
+            flight.flightNumber = newFlightNumber;
+            flight.destination = newDestination;
+            flight.iataCode = newIataCode;
+            flight.departureTime = newDepTime;
+            
+            // Опциональные поля
+            const newExpected = prompt('Ожидаемое время (оставьте пустым если нет):', flight.expectedTime || '');
+            flight.expectedTime = newExpected;
+            
+            const newRegStart = prompt('Начало регистрации:', flight.regStart || '');
+            flight.regStart = newRegStart;
+            
+            const newRegEnd = prompt('Конец регистрации:', flight.regEnd || '');
+            flight.regEnd = newRegEnd;
+            
+            const newBoardStart = prompt('Начало посадки:', flight.boardingStart || '');
+            flight.boardingStart = newBoardStart;
+            
+            const newBoardEnd = prompt('Конец посадки:', flight.boardingEnd || '');
+            flight.boardingEnd = newBoardEnd;
+            
+            saveToTelegram();
+            renderAll();
+            alert('✅ Рейс обновлён!');
         }
-    });
-    
-    async function deleteFlight(id) {
-        if(confirm('Удалить рейс?')) {
-            await fetch(API_URL + '?id=' + id, { method: 'DELETE', mode: 'no-cors' });
-            alert('Удалено! Обнови страницу');
-            setTimeout(() => loadFlights(), 2000);
+        
+        // Удаление рейса
+        async function deleteFlight(id) {
+            if (confirm('Удалить рейс?')) {
+                flights = flights.filter(f => f.id != id);
+                await saveToTelegram();
+                renderAll();
+            }
         }
-    }
-    
-    function openEdit(id) {
-        let f = flights.find(f => f.id == id);
-        if(!f) return;
-        editId = id;
-        document.getElementById('edit_flightNumber').value = f.flightNumber;
-        document.getElementById('edit_destination').value = f.destination;
-        document.getElementById('edit_iataCode').value = f.iataCode;
-        document.getElementById('edit_departureTime').value = f.departureTime.slice(0,16);
-        document.getElementById('edit_expectedTime').value = f.expectedTime ? f.expectedTime.slice(0,16) : '';
-        document.getElementById('edit_regStart').value = f.regStart ? f.regStart.slice(0,16) : '';
-        document.getElementById('edit_regEnd').value = f.regEnd ? f.regEnd.slice(0,16) : '';
-        document.getElementById('edit_boardingStart').value = f.boardingStart ? f.boardingStart.slice(0,16) : '';
-        document.getElementById('edit_boardingEnd').value = f.boardingEnd ? f.boardingEnd.slice(0,16) : '';
-        document.getElementById('editPanel').classList.remove('hidden');
-    }
-    
-    async function saveEdit() {
-        let flight = {
-            id: editId,
-            flightNumber: document.getElementById('edit_flightNumber').value,
-            destination: document.getElementById('edit_destination').value,
-            iataCode: document.getElementById('edit_iataCode').value,
-            departureTime: document.getElementById('edit_departureTime').value,
-            expectedTime: document.getElementById('edit_expectedTime').value || '',
-            regStart: document.getElementById('edit_regStart').value || '',
-            regEnd: document.getElementById('edit_regEnd').value || '',
-            boardingStart: document.getElementById('edit_boardingStart').value || '',
-            boardingEnd: document.getElementById('edit_boardingEnd').value || ''
-        };
-        await fetch(API_URL, { method: 'PUT', mode: 'no-cors', body: JSON.stringify(flight) });
-        alert('Сохранено! Обнови страницу');
-        cancelEdit();
-        setTimeout(() => loadFlights(), 2000);
-    }
-    
-    function cancelEdit() {
-        document.getElementById('editPanel').classList.add('hidden');
-        editId = null;
-    }
-    
-    function showPanel(panel) {
-        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        if(panel === 'tablo') {
-            document.getElementById('tabloPanel').classList.add('active');
-            document.querySelector('.tab').classList.add('active');
-        } else {
-            document.getElementById('adminPanel').classList.add('active');
-            document.querySelectorAll('.tab')[1].classList.add('active');
+        
+        // Переключение вкладок
+        function showPanel(panel) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            
+            if (panel === 'tablo') {
+                document.getElementById('tabloPanel').classList.add('active');
+                document.querySelector('.tab-btn').classList.add('active');
+            } else {
+                document.getElementById('adminPanel').classList.add('active');
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+            }
         }
-    }
-    
-    function updateTime() {
-        let now = getGMT5();
-        document.getElementById('currentTime').innerHTML = `🕐 GMT+5: ${now.toLocaleString('ru-RU')}`;
-        renderAll();
-    }
-    
-    loadFlights();
-    updateTime();
-    setInterval(updateTime, 1000);
-</script>
+        
+        // Обновление времени и статусов каждую секунду
+        function updateCurrentTime() {
+            const now = getCurrentTimeGMT5();
+            document.getElementById('currentTime').innerHTML = `🕐 Текущее время (GMT+5): ${now.toLocaleString('ru-RU')}`;
+            renderFlightsTable();
+            renderAdminTable();
+        }
+        
+        // Инициализация
+        loadFromTelegram();
+        updateCurrentTime();
+        setInterval(updateCurrentTime, 1000);
+    </script>
 </body>
 </html>
