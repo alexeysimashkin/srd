@@ -38,8 +38,9 @@
         .loading { text-align: center; padding: 40px; color: #666; }
         .edit-panel { background: #f0f8ff; border: 2px solid #0277bd; border-radius: 15px; padding: 20px; margin-top: 20px; }
         .hidden { display: none; }
-        .admin-tag { background: #ff9800; color: white; padding: 5px 10px; border-radius: 20px; font-size: 12px; margin-left: 10px; }
-        .ip-error { background: #f8d7da; color: #721c24; padding: 10px; border-radius: 8px; margin-bottom: 20px; }
+        .password-panel { background: #f0f8ff; border: 2px solid #ff9800; border-radius: 15px; padding: 20px; margin-bottom: 20px; }
+        .password-panel input { width: 200px; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; }
+        .admin-tag { background: #4caf50; color: white; padding: 5px 10px; border-radius: 20px; font-size: 12px; margin-left: 10px; }
     </style>
 </head>
 <body>
@@ -50,11 +51,9 @@
     </div>
     <div class="current-time" id="currentTime"></div>
 
-    <div id="ipCheckError" class="ip-error" style="display:none;"></div>
-
     <div class="tabs">
         <button class="tab-btn active" onclick="showPanel('tablo')">📋 Табло рейсов</button>
-        <button class="tab-btn" onclick="showPanel('admin')" id="adminTabBtn">⚙️ Админ-панель</button>
+        <button class="tab-btn" onclick="showPanel('admin')">⚙️ Админ-панель</button>
     </div>
 
     <div id="tabloPanel" class="panel active">
@@ -73,29 +72,18 @@
 <script>
     // ========== ВСТАВЬ СВОИ ССЫЛКИ ==========
     const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSCIkYTRlEHADtBUxHsndZRerY9Rk-P-Iz46x1jyVMAlCwkTMzXG4-OAeAyyVWsOgidOJ_TW_LZS4B4/pub?output=csv";
-    const API_URL = "https://script.google.com/macros/s/AKfycbw55oTrPOF3GfI7l20J4LAn5KsNBsMUU12pIX3fEMZ0X2j3FHpKQqTrUjZ-8O7F51KB/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbyVUH5k-UdjBQoA533obKlgkqosontwB0ZIEvUQbuI46wNzfshhRGKdJfOnq4LTzV7k/exec";
+    const ADMIN_PASSWORD = "admin123";  // Пароль должен совпадать с тем, что в скрипте
     // ========================================
     
     let flights = [];
     let editId = null;
     let isAdmin = false;
-    let userIP = "";
-    
-    // Получаем IP пользователя
-    async function getUserIP() {
-        try {
-            const res = await fetch('https://api.ipify.org?format=json');
-            const data = await res.json();
-            userIP = data.ip;
-            return userIP;
-        } catch(e) {
-            return "0.0.0.0";
-        }
-    }
     
     function getGMT5() {
         const now = new Date();
-        return new Date(now.getTime() + (5 * 60 - now.getTimezoneOffset()) * 60000);
+        // Екатеринбург GMT+5
+        return new Date(now.getTime() + (5 * 60 * 60 * 1000));
     }
     
     async function loadFlights() {
@@ -122,9 +110,9 @@
                 }
             }
             renderTablo();
-            if(isAdmin) renderAdmin();
+            if(isAdmin && document.getElementById('adminList')) renderAdmin();
         } catch(e) {
-            document.getElementById('flightsList').innerHTML = `<td><td colspan="6" class="loading">Ошибка загрузки: ${e.message}</td><table>`;
+            document.getElementById('flightsList').innerHTML = `<tr><td colspan="6" class="loading">Ошибка: ${e.message}</td></tr>`;
         }
     }
     
@@ -155,19 +143,43 @@
             const status = getStatus(f);
             const dep = new Date(f.departureTime);
             const exp = f.expectedTime ? new Date(f.expectedTime) : null;
+            const depStr = dep.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
+            const expStr = exp ? exp.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}) : '—';
             return `<tr>
-                <td>${dep.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'})}</td>
+                <td>${depStr}</td>
                 <td><strong>${f.flightNumber}</strong></td>
                 <td>${f.destination}</td>
                 <td>${f.iataCode}</td>
-                <td>${exp ? exp.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}) : '—'}</td>
+                <td>${expStr}</td>
                 <td><span class="status ${status.class}">${status.text}</span></td>
             </tr>`;
         }).join('');
     }
     
+    async function checkPassword() {
+        const pwd = prompt("Введите пароль администратора:");
+        if(pwd !== ADMIN_PASSWORD) {
+            alert("Неверный пароль!");
+            return false;
+        }
+        isAdmin = true;
+        await renderAdmin();
+        return true;
+    }
+    
     async function renderAdmin() {
         const container = document.getElementById('adminContent');
+        if(!isAdmin) {
+            container.innerHTML = `
+                <div class="password-panel">
+                    <h3>🔐 Доступ к админ-панели</h3>
+                    <p>Введите пароль для управления рейсами</p>
+                    <button onclick="checkPassword()" class="btn">Войти</button>
+                </div>
+            `;
+            return;
+        }
+        
         if(flights.length === 0) {
             container.innerHTML = '<div class="loading">Загрузка...</div>';
             return;
@@ -177,9 +189,9 @@
             <h3>➕ Добавить рейс</h3>
             <form id="flightForm">
                 <div class="form-row">
-                    <div class="form-group"><label>Номер рейса</label><input type="text" id="flightNumber" required></div>
-                    <div class="form-group"><label>Направление</label><input type="text" id="destination" required></div>
-                    <div class="form-group"><label>Код IATA</label><input type="text" id="iataCode" required></div>
+                    <div class="form-group"><label>Номер рейса</label><input type="text" id="flightNumber" required placeholder="AS-477"></div>
+                    <div class="form-group"><label>Направление</label><input type="text" id="destination" required placeholder="Самара"></div>
+                    <div class="form-group"><label>Код IATA</label><input type="text" id="iataCode" required placeholder="KUF"></div>
                 </div>
                 <div class="form-row">
                     <div class="form-group"><label>Время вылета</label><input type="datetime-local" id="departureTime" required></div>
@@ -196,7 +208,7 @@
             
             <h3>📋 Управление</h3>
             <div style="overflow-x:auto;">
-                <table><thead><tr><th>Рейс</th><th>Направление</th><th>Время</th><th>Статус</th><th>Действия</th></tr></thead>
+                </table><thead><tr><th>Рейс</th><th>Направление</th><th>Время</th><th>Статус</th><th>Действия</th></tr></thead>
                 <tbody id="adminList"></tbody>
             </table>
             </div>
@@ -235,11 +247,10 @@
                 <td>
                     <button class="edit-btn" onclick="openEdit(${f.id})">✏️ Ред.</button>
                     <button class="delete-btn" onclick="deleteFlight(${f.id})">🗑️ Удалить</button>
-                </td>
+                 </td>
             </tr>`;
         }).join('');
         
-        // Привязываем форму
         document.getElementById('flightForm')?.addEventListener('submit', addFlight);
     }
     
@@ -258,7 +269,7 @@
         };
         
         try {
-            const res = await fetch(`${API_URL}?ip=${userIP}`, {
+            const res = await fetch(`${API_URL}?password=${ADMIN_PASSWORD}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(flight)
@@ -307,7 +318,7 @@
         };
         
         try {
-            const res = await fetch(`${API_URL}?ip=${userIP}`, {
+            const res = await fetch(`${API_URL}?password=${ADMIN_PASSWORD}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(flight)
@@ -333,7 +344,7 @@
     async function deleteFlight(id) {
         if(!confirm('Удалить рейс?')) return;
         try {
-            const res = await fetch(`${API_URL}?id=${id}&ip=${userIP}`, { method: 'DELETE' });
+            const res = await fetch(`${API_URL}?id=${id}&password=${ADMIN_PASSWORD}`, { method: 'DELETE' });
             const result = await res.json();
             if(result.success) {
                 alert('🗑️ Рейс удалён!');
@@ -355,45 +366,45 @@
         } else {
             document.getElementById('adminPanel').classList.add('active');
             document.querySelectorAll('.tab-btn')[1].classList.add('active');
-            if(isAdmin) {
-                renderAdmin();
-            } else {
-                document.getElementById('adminContent').innerHTML = '<div class="ip-error">⛔ Доступ запрещён. Только администратор может редактировать рейсы.</div>';
-            }
+            renderAdmin();
         }
     }
     
     function updateTime() {
         const now = getGMT5();
-        document.getElementById('currentTime').innerHTML = `🕐 GMT+5: ${now.toLocaleString('ru-RU')}`;
+        document.getElementById('currentTime').innerHTML = `🕐 GMT+5 (Екатеринбург): ${now.toLocaleString('ru-RU')}`;
         renderTablo();
-        if(isAdmin && document.getElementById('adminList')) renderAdmin();
-    }
-    
-    async function init() {
-        await getUserIP();
-        await loadFlights();
-        updateTime();
-        
-        // Показываем админке только если IP совпадает (хранится в скрипте)
-        // Для этого делаем тестовый запрос
-        try {
-            const test = await fetch(`${API_URL}?ip=${userIP}`);
-            const text = await test.text();
-            isAdmin = (text !== "Доступ запрещен");
-            if(!isAdmin) {
-                document.getElementById('adminTabBtn').style.opacity = '0.5';
-                document.getElementById('adminTabBtn').title = 'Только для администратора';
+        if(isAdmin && document.getElementById('adminList')) {
+            const adminBody = document.getElementById('adminList');
+            if(adminBody && flights.length) {
+                adminBody.innerHTML = flights.map(f => {
+                    const status = getStatus(f);
+                    const dep = new Date(f.departureTime);
+                    return `<tr>
+                        <td>${f.flightNumber}</td>
+                        <td>${f.destination} (${f.iataCode})</td>
+                        <td>${dep.toLocaleString()}</td>
+                        <td><span class="status ${status.class}">${status.text}</span></td>
+                        <td>
+                            <button class="edit-btn" onclick="openEdit(${f.id})">✏️ Ред.</button>
+                            <button class="delete-btn" onclick="deleteFlight(${f.id})">🗑️ Удалить</button>
+                         </td>
+                    </tr>`;
+                }).join('');
             }
-        } catch(e) {
-            isAdmin = false;
         }
-        
-        setInterval(updateTime, 1000);
-        setInterval(loadFlights, 30000);
     }
     
-    init();
+    setInterval(() => {
+        updateTime();
+    }, 1000);
+    
+    setInterval(() => {
+        loadFlights();
+    }, 30000);
+    
+    loadFlights();
+    updateTime();
 </script>
 </body>
 </html>
