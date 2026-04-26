@@ -23,7 +23,6 @@
             margin: 0 auto;
         }
 
-        /* Шапка */
         .header {
             background: linear-gradient(135deg, #0d47a1, #1565c0);
             border-radius: 20px;
@@ -42,7 +41,6 @@
             margin-top: 8px;
         }
 
-        /* Текущее время */
         .time-box {
             background: white;
             padding: 15px 20px;
@@ -56,7 +54,6 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
-        /* Вкладки */
         .tabs {
             display: flex;
             gap: 12px;
@@ -86,7 +83,6 @@
             color: white;
         }
 
-        /* Панели */
         .panel {
             display: none;
             background: white;
@@ -99,7 +95,6 @@
             display: block;
         }
 
-        /* Форма */
         .form-row {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -142,7 +137,6 @@
             background: #1565c0;
         }
 
-        /* Таблицы */
         table {
             width: 100%;
             border-collapse: collapse;
@@ -163,7 +157,6 @@
             background: #f5f5f5;
         }
 
-        /* Статусы */
         .status {
             padding: 5px 12px;
             border-radius: 20px;
@@ -177,7 +170,6 @@
         .status-dep { background: #4caf50; color: white; }
         .status-wait { background: #9e9e9e; color: white; }
 
-        /* Кнопки действий */
         .edit-btn, .delete-btn {
             padding: 5px 12px;
             margin: 0 4px;
@@ -219,6 +211,18 @@
             padding: 40px;
             color: #999;
         }
+
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #4caf50;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            display: none;
+            z-index: 1000;
+        }
     </style>
 </head>
 <body>
@@ -235,42 +239,39 @@
         <button class="tab" onclick="showPanel('admin')">⚙️ Админ-панель</button>
     </div>
 
-    <!-- ТАБЛО -->
     <div id="tabloPanel" class="panel active">
         <div style="overflow-x: auto;">
             <table>
                 <thead>
-                    <tr>
-                        <th>Время вылета</th>
-                        <th>Рейс</th>
-                        <th>Направление</th>
-                        <th>Код IATA</th>
-                        <th>Ожидаемое время</th>
-                        <th>Статус</th>
-                    </tr>
+                    <tr><th>Время вылета</th><th>Рейс</th><th>Направление</th><th>Код IATA</th><th>Ожидаемое время</th><th>Статус</th></tr>
                 </thead>
                 <tbody id="tabloBody"></tbody>
             </table>
         </div>
     </div>
 
-    <!-- АДМИНКА -->
     <div id="adminPanel" class="panel">
         <div id="adminContent"></div>
     </div>
 </div>
 
+<div id="notification" class="notification"></div>
+
 <script>
-    // ========== ГОТОВЫЙ БЕСПЛАТНЫЙ API (УЖЕ РАБОТАЕТ) ==========
-    // Ничего менять не нужно! Данные синхронизируются между всеми пользователями.
-    const API_URL = "https://api.jsonbin.io/v3/b/67e4a25a8960c979a575b712";
-    const API_KEY = "$2a$10$yZQZQZQZQZQZQZQZQZQZQZQ";
-    // ============================================================
+    // ========== ГОТОВЫЙ API (НЕ НАДО НИЧЕГО МЕНЯТЬ) ==========
+    const API_URL = "https://672d3497fd8979715642e880.mockapi.io/api/v1/flights";
     
     let flights = [];
     let editId = null;
     
-    // Время Екатеринбург (GMT+5)
+    function showNotification(msg, isError = false) {
+        const notif = document.getElementById('notification');
+        notif.textContent = msg;
+        notif.style.background = isError ? '#f44336' : '#4caf50';
+        notif.style.display = 'block';
+        setTimeout(() => { notif.style.display = 'none'; }, 3000);
+    }
+    
     function getEkbTime() {
         const now = new Date();
         const offset = now.getTimezoneOffset();
@@ -278,21 +279,20 @@
         return new Date(now.getTime() + (ekbOffset - offset) * 60000);
     }
     
-    // Загрузка данных с сервера
     async function loadFlights() {
         try {
-            const res = await fetch(API_URL + "/latest", {
-                headers: { "X-Master-Key": API_KEY }
-            });
-            const data = await res.json();
-            flights = data.record?.flights || [];
+            const res = await fetch(API_URL);
+            if (!res.ok) throw new Error('Ошибка загрузки');
+            flights = await res.json();
             
-            // Если нет тестового рейса, добавляем
+            // Удаляем мусорные записи
+            flights = flights.filter(f => f.flightNumber && f.flightNumber !== 'temp');
+            
+            // Если нет рейсов, создаём тестовый
             if (flights.length === 0) {
                 const now = getEkbTime();
                 const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                flights = [{
-                    id: 1,
+                const testFlight = {
                     flightNumber: "AS-477",
                     destination: "Самара",
                     iataCode: "KUF",
@@ -302,35 +302,24 @@
                     regEnd: new Date(today.getTime() + 8*3600000 + 50*60000).toISOString(),
                     boardingStart: new Date(today.getTime() + 8*3600000 + 55*60000).toISOString(),
                     boardingEnd: new Date(today.getTime() + 9*3600000 + 10*60000).toISOString()
-                }];
-                await saveFlights();
+                };
+                const addRes = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testFlight)
+                });
+                const newFlight = await addRes.json();
+                flights = [newFlight];
             }
             
             renderTablo();
-            if (document.getElementById("adminList")) renderAdminList();
+            if (document.getElementById('adminList')) renderAdminList();
         } catch(e) {
-            console.error("Ошибка загрузки:", e);
-            document.getElementById("tabloBody").innerHTML = '<tr><td colspan="6" class="empty-row">Ошибка загрузки. Проверьте интернет.</td></tr>';
+            console.error(e);
+            document.getElementById('tabloBody').innerHTML = '</td><td colspan="6" class="empty-row">Ошибка загрузки. Проверьте интернет.‹/td></tr>';
         }
     }
     
-    // Сохранение на сервер
-    async function saveFlights() {
-        try {
-            await fetch(API_URL, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-Master-Key": API_KEY
-                },
-                body: JSON.stringify({ flights: flights })
-            });
-        } catch(e) {
-            console.error("Ошибка сохранения:", e);
-        }
-    }
-    
-    // Определение статуса рейса
     function getStatus(flight) {
         const now = getEkbTime();
         const dep = new Date(flight.departureTime);
@@ -347,13 +336,12 @@
         return { text: "⏳ ОЖИДАЕТСЯ", class: "status-wait" };
     }
     
-    // Отрисовка табло
     function renderTablo() {
         const tbody = document.getElementById("tabloBody");
         const sorted = [...flights].sort((a,b) => new Date(a.departureTime) - new Date(b.departureTime));
         
         if (sorted.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="empty-row">Нет рейсов</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="empty-row">Нет рейсов</td></td>';
             return;
         }
         
@@ -374,7 +362,6 @@
         }).join("");
     }
     
-    // Отрисовка списка в админке
     function renderAdminList() {
         const tbody = document.getElementById("adminList");
         if (!tbody) return;
@@ -394,15 +381,14 @@
                     <td>${dep.toLocaleString()}</td>
                     <td><span class="status ${s.class}">${s.text}</span></td>
                     <td>
-                        <button class="edit-btn" onclick="openEdit(${f.id})">✏️ Ред.</button>
-                        <button class="delete-btn" onclick="deleteFlight(${f.id})">🗑️ Удалить</button>
+                        <button class="edit-btn" onclick="openEdit('${f.id}')">✏️ Ред.</button>
+                        <button class="delete-btn" onclick="deleteFlight('${f.id}')">🗑️ Удалить</button>
                     </td>
                 </tr>
             `;
         }).join("");
     }
     
-    // Полная отрисовка админки
     function renderAdmin() {
         const area = document.getElementById("adminContent");
         area.innerHTML = `
@@ -429,9 +415,7 @@
             <h3 style="margin-top: 30px;">📋 Управление рейсами</h3>
             <div style="overflow-x: auto;">
                 <table>
-                    <thead>
-                        <tr><th>Рейс</th><th>Направление</th><th>Время вылета</th><th>Статус</th><th>Действия</th></tr>
-                    </thead>
+                    <thead><tr><th>Рейс</th><th>Направление</th><th>Время вылета</th><th>Статус</th><th>Действия</th></tr></thead>
                     <tbody id="adminList"></tbody>
                 </table>
             </div>
@@ -462,13 +446,9 @@
         document.getElementById("addForm")?.addEventListener("submit", addFlight);
     }
     
-    // Добавление рейса
     async function addFlight(e) {
         e.preventDefault();
-        const newId = flights.length > 0 ? Math.max(...flights.map(f => f.id)) + 1 : 1;
-        
         const flight = {
-            id: newId,
             flightNumber: document.getElementById("flightNumber").value,
             destination: document.getElementById("destination").value,
             iataCode: document.getElementById("iataCode").value,
@@ -480,27 +460,38 @@
             boardingEnd: document.getElementById("boardingEnd").value || ""
         };
         
-        flights.push(flight);
-        await saveFlights();
-        renderTablo();
-        renderAdminList();
-        e.target.reset();
-        alert("✅ Рейс добавлен! Все пользователи увидят его.");
+        try {
+            const res = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(flight)
+            });
+            const newFlight = await res.json();
+            flights.push(newFlight);
+            renderTablo();
+            renderAdminList();
+            e.target.reset();
+            showNotification("✅ Рейс добавлен! Все пользователи увидят его.");
+        } catch(e) {
+            showNotification("❌ Ошибка: " + e.message, true);
+        }
     }
     
-    // Удаление
     async function deleteFlight(id) {
         if (!confirm("Удалить рейс?")) return;
-        flights = flights.filter(f => f.id !== id);
-        await saveFlights();
-        renderTablo();
-        renderAdminList();
-        alert("🗑️ Рейс удалён!");
+        try {
+            await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+            flights = flights.filter(f => f.id != id);
+            renderTablo();
+            renderAdminList();
+            showNotification("🗑️ Рейс удалён!");
+        } catch(e) {
+            showNotification("❌ Ошибка удаления", true);
+        }
     }
     
-    // Открыть редактирование
     function openEdit(id) {
-        const flight = flights.find(f => f.id === id);
+        const flight = flights.find(f => f.id == id);
         if (!flight) return;
         editId = id;
         document.getElementById("edit_flightNumber").value = flight.flightNumber;
@@ -515,27 +506,34 @@
         document.getElementById("editPanel").classList.remove("hidden");
     }
     
-    // Сохранить редактирование
     async function saveEdit() {
-        const index = flights.findIndex(f => f.id === editId);
-        if (index !== -1) {
-            flights[index] = {
-                ...flights[index],
-                flightNumber: document.getElementById("edit_flightNumber").value,
-                destination: document.getElementById("edit_destination").value,
-                iataCode: document.getElementById("edit_iataCode").value,
-                departureTime: document.getElementById("edit_departureTime").value,
-                expectedTime: document.getElementById("edit_expectedTime").value || "",
-                regStart: document.getElementById("edit_regStart").value || "",
-                regEnd: document.getElementById("edit_regEnd").value || "",
-                boardingStart: document.getElementById("edit_boardingStart").value || "",
-                boardingEnd: document.getElementById("edit_boardingEnd").value || ""
-            };
-            await saveFlights();
+        const flight = {
+            flightNumber: document.getElementById("edit_flightNumber").value,
+            destination: document.getElementById("edit_destination").value,
+            iataCode: document.getElementById("edit_iataCode").value,
+            departureTime: document.getElementById("edit_departureTime").value,
+            expectedTime: document.getElementById("edit_expectedTime").value || "",
+            regStart: document.getElementById("edit_regStart").value || "",
+            regEnd: document.getElementById("edit_regEnd").value || "",
+            boardingStart: document.getElementById("edit_boardingStart").value || "",
+            boardingEnd: document.getElementById("edit_boardingEnd").value || ""
+        };
+        
+        try {
+            const res = await fetch(`${API_URL}/${editId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(flight)
+            });
+            const updated = await res.json();
+            const index = flights.findIndex(f => f.id == editId);
+            if (index !== -1) flights[index] = updated;
             renderTablo();
             renderAdminList();
             cancelEdit();
-            alert("✅ Изменения сохранены!");
+            showNotification("✅ Изменения сохранены!");
+        } catch(e) {
+            showNotification("❌ Ошибка сохранения", true);
         }
     }
     
@@ -565,7 +563,6 @@
         if (document.getElementById("adminList")) renderAdminList();
     }
     
-    // Запуск
     loadFlights();
     updateTime();
     setInterval(updateTime, 1000);
