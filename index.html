@@ -2,75 +2,97 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Аэропорт Свердловский</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Аэропорт Свердловский - Онлайн табло</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: system-ui, sans-serif; background: #e0f0ff; padding: 20px; }
-        .container { max-width: 1300px; margin: 0 auto; }
-        .header { background: #0277bd; color: white; padding: 20px; border-radius: 20px; margin-bottom: 20px; }
-        .time { background: white; padding: 15px; border-radius: 12px; text-align: right; font-family: monospace; font-size: 18px; margin-bottom: 20px; }
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-        .tab { background: #ccc; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; }
-        .tab.active { background: #0277bd; color: white; }
-        .panel { display: none; background: white; border-radius: 20px; padding: 20px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #e0f0ff; min-height: 100vh; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .airport-header { background: linear-gradient(135deg, #0277bd, #01579b); border-radius: 20px; padding: 25px 35px; margin-bottom: 30px; border-left: 5px solid #ffd700; }
+        .airport-name { font-size: 36px; font-weight: bold; color: white; }
+        .airport-code { font-size: 18px; color: #ffd700; margin-top: 8px; }
+        .current-time { text-align: right; padding: 15px 20px; background: white; border-radius: 10px; color: #0277bd; font-family: monospace; font-size: 18px; margin-bottom: 20px; font-weight: bold; }
+        .tabs { display: flex; gap: 15px; margin-bottom: 25px; flex-wrap: wrap; }
+        .tab-btn { background: rgba(2,119,189,0.2); border: none; padding: 12px 30px; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; color: #01579b; transition: all 0.3s; }
+        .tab-btn.active, .tab-btn:hover { background: #0277bd; color: white; }
+        .panel { display: none; background: white; border-radius: 20px; padding: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
         .panel.active { display: block; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background: #0277bd; color: white; }
-        .status { padding: 4px 12px; border-radius: 20px; font-size: 12px; }
-        .status-reg { background: #2196f3; color: white; }
-        .status-board { background: #ff9800; color: white; }
-        .status-dep { background: #4caf50; color: white; }
-        .status-wait { background: #9e9e9e; color: white; }
-        input, button { padding: 10px; margin: 5px 0; }
-        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
-        .btn { background: #0277bd; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; }
+        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px; }
+        .form-group input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #01579b; }
+        .btn { background: #0277bd; color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; }
+        .btn:hover { background: #01579b; }
         .edit-btn, .delete-btn { padding: 5px 10px; margin: 0 5px; border: none; border-radius: 5px; cursor: pointer; }
-        .edit-btn { background: #ff9800; }
-        .delete-btn { background: #f44336; color: white; }
+        .edit-btn { background: #2196f3; color: white; }
+        .delete-btn { background: #dc3545; color: white; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #0277bd; color: white; }
+        .status { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; display: inline-block; }
+        .status-registration { background: #2196f3; color: white; }
+        .status-boarding { background: #ff9800; color: white; }
+        .status-departed { background: #4caf50; color: white; }
+        .status-scheduled { background: #9e9e9e; color: white; }
+        h3 { margin: 20px 0 15px 0; color: #01579b; }
         .edit-panel { background: #f0f8ff; border: 2px solid #0277bd; border-radius: 15px; padding: 20px; margin-top: 20px; }
         .hidden { display: none; }
     </style>
 </head>
 <body>
 <div class="container">
-    <div class="header">
-        <h1>✈️ Аэропорт Свердловский</h1>
-        <p>Екатеринбург | SRD | GMT+5</p>
+    <div class="airport-header">
+        <div class="airport-name">✈️ Аэропорт Свердловский</div>
+        <div class="airport-code">Екатеринбург, Россия | Код IATA: SRD | GMT+5</div>
     </div>
-    <div class="time" id="time"></div>
+    <div class="current-time" id="currentTime"></div>
+
     <div class="tabs">
-        <button class="tab active" onclick="showPanel('tablo')">📋 Табло</button>
-        <button class="tab" onclick="showPanel('admin')">⚙️ Админ</button>
+        <button class="tab-btn active" onclick="showPanel('tablo')">📋 Табло рейсов</button>
+        <button class="tab-btn" onclick="showPanel('admin')">⚙️ Админ-панель</button>
     </div>
-    <div id="tabloPanel" class="panel active"><div style="overflow-x:auto;"><table><thead><tr><th>Время</th><th>Рейс</th><th>Направление</th><th>Код</th><th>Ожидание</th><th>Статус</th></tr></thead><tbody id="tabloBody"></tbody></table></div></div>
-    <div id="adminPanel" class="panel"><div id="adminArea"></div></div>
+
+    <div id="tabloPanel" class="panel active">
+        <div style="overflow-x: auto;">
+            <table>
+                <thead><tr><th>Время</th><th>Рейс</th><th>Направление</th><th>Код</th><th>Ожидание</th><th>Статус</th></tr></thead>
+                <tbody id="flightsList"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="adminPanel" class="panel">
+        <div id="adminContent"></div>
+    </div>
 </div>
+
 <script>
-    // ===== ВСТАВЬ СВОИ ДАННЫЕ =====
+    // ⚠️ ВСТАВЬ СВОИ ССЫЛКИ СЮДА ⚠️
     const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQbCL3cfONxrIJlM5Lf-Xckeyd4m-1coUvkjGJlvxgg8vF-fbcIuJwZhGCPCkThOLAFCvlYXG1hC8aM/pub?output=csv";
     const API_URL = "https://script.google.com/macros/s/AKfycbzySwVNxQnRB-Rnqt8KifTsiCI5hMs64AJCQghi3sOwnjsc2so8-SqD9o3jAxVkXBe_pQ/exec";
-    // ===============================
     
     let flights = [];
     let editId = null;
     
+    // Время Екатеринбург GMT+5
     function getEkbTime() {
         const now = new Date();
-        return new Date(now.getTime() + (5 * 60 - now.getTimezoneOffset()) * 60000);
+        const offset = now.getTimezoneOffset();
+        const ekbOffset = -5 * 60;
+        return new Date(now.getTime() + (ekbOffset - offset) * 60000);
     }
     
-    async function loadFromSheets() {
+    // Загрузка из Google Sheets
+    async function loadFlights() {
         try {
             const res = await fetch(CSV_URL + '?t=' + Date.now());
             const text = await res.text();
             const rows = text.split('\n');
             flights = [];
-            for(let i=1; i<rows.length; i++) {
+            for(let i = 1; i < rows.length; i++) {
                 const cols = rows[i].split(',');
-                if(cols.length>=5 && cols[0] && cols[0]!=='id') {
+                if(cols.length >= 5 && cols[0] && cols[0] !== 'id') {
                     flights.push({
-                        id: parseInt(cols[0]) || i,
+                        id: parseInt(cols[0]),
                         flightNumber: cols[1]?.trim(),
                         destination: cols[2]?.trim(),
                         iataCode: cols[3]?.trim(),
@@ -84,122 +106,258 @@
                 }
             }
             renderTablo();
-        } catch(e) { console.error(e); }
+            if(document.getElementById('adminList')) renderAdminList();
+        } catch(e) {
+            document.getElementById('flightsList').innerHTML = `<tr><td colspan="6">Ошибка: ${e.message}</td></tr>`;
+        }
     }
     
-    function getStatus(f) {
+    // Статус рейса
+    function getStatus(flight) {
         const now = getEkbTime();
-        const dep = new Date(f.departureTime);
-        const rs = f.regStart ? new Date(f.regStart) : null;
-        const re = f.regEnd ? new Date(f.regEnd) : null;
-        const bs = f.boardingStart ? new Date(f.boardingStart) : null;
-        const be = f.boardingEnd ? new Date(f.boardingEnd) : null;
-        if(now > dep) return { text: 'ВЫЛЕТЕЛ', class: 'status-dep' };
-        if(be && now > be) return { text: 'ПОСАДКА ЗАКРЫТА', class: 'status-wait' };
-        if(bs && now >= bs) return { text: 'ПОСАДКА', class: 'status-board' };
-        if(re && now > re) return { text: 'РЕГИСТРАЦИЯ ЗАКРЫТА', class: 'status-wait' };
-        if(rs && now >= rs) return { text: 'РЕГИСТРАЦИЯ', class: 'status-reg' };
-        return { text: 'ОЖИДАЕТСЯ', class: 'status-wait' };
+        const dep = new Date(flight.departureTime);
+        const regStart = flight.regStart ? new Date(flight.regStart) : null;
+        const regEnd = flight.regEnd ? new Date(flight.regEnd) : null;
+        const boardStart = flight.boardingStart ? new Date(flight.boardingStart) : null;
+        const boardEnd = flight.boardingEnd ? new Date(flight.boardingEnd) : null;
+        
+        if(now > dep) return { text: '✈️ ВЫЛЕТЕЛ', class: 'status-departed' };
+        if(boardEnd && now > boardEnd) return { text: '🔒 ПОСАДКА ЗАКРЫТА', class: 'status-scheduled' };
+        if(boardStart && now >= boardStart) return { text: '🎫 ПОСАДКА', class: 'status-boarding' };
+        if(regEnd && now > regEnd) return { text: '⏰ РЕГИСТРАЦИЯ ЗАКРЫТА', class: 'status-scheduled' };
+        if(regStart && now >= regStart) return { text: '✅ РЕГИСТРАЦИЯ', class: 'status-registration' };
+        return { text: '⏳ ОЖИДАЕТСЯ', class: 'status-scheduled' };
     }
     
+    // Табло
     function renderTablo() {
-        const sorted = [...flights].sort((a,b)=>new Date(a.departureTime)-new Date(b.departureTime));
-        document.getElementById('tabloBody').innerHTML = sorted.map(f=>{
+        const tbody = document.getElementById('flightsList');
+        const sorted = [...flights].sort((a,b) => new Date(a.departureTime) - new Date(b.departureTime));
+        if(!sorted.length) {
+            tbody.innerHTML = '<tr><td colspan="6">Нет рейсов</td></tr>';
+            return;
+        }
+        tbody.innerHTML = sorted.map(f => {
             const s = getStatus(f);
             const dep = new Date(f.departureTime);
             const exp = f.expectedTime ? new Date(f.expectedTime) : null;
-            return `<tr><td>${dep.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</td><td><b>${f.flightNumber}</b></td><td>${f.destination}</td><td>${f.iataCode}</td><td>${exp?exp.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):'—'}</td><td><span class="status ${s.class}">${s.text}</span></td></tr>`;
+            return `<tr>
+                <td>${dep.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'})}</td>
+                <td><strong>${f.flightNumber}</strong></td>
+                <td>${f.destination}</td>
+                <td>${f.iataCode}</td>
+                <td>${exp ? exp.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}) : '—'}</td>
+                <td><span class="status ${s.class}">${s.text}</span></td>
+            </tr>`;
         }).join('');
     }
     
-    async function renderAdmin() {
-        const area = document.getElementById('adminArea');
-        area.innerHTML = `
-            <h3>➕ Добавить</h3>
-            <form id="addForm"><div class="form-row"><input placeholder="Номер" id="fn" required><input placeholder="Направление" id="dest" required><input placeholder="Код IATA" id="code" required></div>
-            <div class="form-row"><input type="datetime-local" id="dt" required><input type="datetime-local" id="exp"></div>
-            <div class="form-row"><input type="datetime-local" id="rs" placeholder="Регистрация начало"><input type="datetime-local" id="re" placeholder="Регистрация конец"></div>
-            <div class="form-row"><input type="datetime-local" id="bs" placeholder="Посадка начало"><input type="datetime-local" id="be" placeholder="Посадка конец"></div>
-            <button type="submit" class="btn">✈️ Добавить</button></form>
-            <h3>📋 Список</h3><div style="overflow-x:auto;"><table><thead><tr><th>Рейс</th><th>Направление</th><th>Время</th><th>Статус</th><th></th></tr></thead><tbody id="adminList"></tbody></table></div>
-            <div id="editBlock" class="edit-panel hidden"><h3>✏️ Редактировать</h3><div class="form-row"><input id="e_fn" placeholder="Номер"><input id="e_dest" placeholder="Направление"><input id="e_code" placeholder="Код"></div>
-            <div class="form-row"><input type="datetime-local" id="e_dt"><input type="datetime-local" id="e_exp"></div>
-            <div class="form-row"><input type="datetime-local" id="e_rs"><input type="datetime-local" id="e_re"><input type="datetime-local" id="e_bs"><input type="datetime-local" id="e_be"></div>
-            <button onclick="saveEdit()" class="btn">💾 Сохранить</button><button onclick="cancelEdit()" class="btn">❌ Отмена</button></div>
-        `;
-        document.getElementById('adminList').innerHTML = flights.map(f=>{
+    // Список рейсов в админке
+    function renderAdminList() {
+        const tbody = document.getElementById('adminList');
+        if(!tbody) return;
+        if(!flights.length) {
+            tbody.innerHTML = '<tr><td colspan="5">Нет рейсов</td></tr>';
+            return;
+        }
+        tbody.innerHTML = flights.map(f => {
             const s = getStatus(f);
             const dep = new Date(f.departureTime);
-            return `<tr><td>${f.flightNumber}</td><td>${f.destination} (${f.iataCode})</td><td>${dep.toLocaleString()}</td><td><span class="status ${s.class}">${s.text}</span></td><td><button class="edit-btn" onclick="openEdit(${f.id})">Ред</button><button class="delete-btn" onclick="deleteFlight(${f.id})">Удл</button></td></tr>`;
+            return `<tr>
+                <td>${f.flightNumber}</td>
+                <td>${f.destination} (${f.iataCode})</td>
+                <td>${dep.toLocaleString()}</td>
+                <td><span class="status ${s.class}">${s.text}</span></td>
+                <td>
+                    <button class="edit-btn" onclick="openEdit(${f.id})">✏️ Ред.</button>
+                    <button class="delete-btn" onclick="deleteFlight(${f.id})">🗑️ Удалить</button>
+                </td>
+            </tr>`;
         }).join('');
+    }
+    
+    // Рендер всей админки
+    function renderAdmin() {
+        const area = document.getElementById('adminContent');
+        area.innerHTML = `
+            <h3>➕ Добавить рейс</h3>
+            <form id="addForm">
+                <div class="form-row">
+                    <div class="form-group"><label>Номер рейса</label><input type="text" id="flightNumber" required placeholder="AS-477"></div>
+                    <div class="form-group"><label>Направление</label><input type="text" id="destination" required placeholder="Самара"></div>
+                    <div class="form-group"><label>Код IATA</label><input type="text" id="iataCode" required placeholder="KUF"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Время вылета</label><input type="datetime-local" id="departureTime" required></div>
+                    <div class="form-group"><label>Ожидаемое время</label><input type="datetime-local" id="expectedTime"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Начало регистрации</label><input type="datetime-local" id="regStart"></div>
+                    <div class="form-group"><label>Конец регистрации</label><input type="datetime-local" id="regEnd"></div>
+                    <div class="form-group"><label>Начало посадки</label><input type="datetime-local" id="boardingStart"></div>
+                    <div class="form-group"><label>Конец посадки</label><input type="datetime-local" id="boardingEnd"></div>
+                </div>
+                <button type="submit" class="btn">✈️ Добавить рейс</button>
+            </form>
+            <h3 style="margin-top:30px">📋 Управление рейсами</h3>
+            <div style="overflow-x:auto;">
+                <table><thead><tr><th>Рейс</th><th>Направление</th><th>Время вылета</th><th>Статус</th><th>Действия</th></tr></thead>
+                <tbody id="adminList"></tbody></table>
+            </div>
+            <div id="editPanel" class="edit-panel hidden">
+                <h3>✏️ Редактировать рейс</h3>
+                <div class="form-row">
+                    <div><label>Номер</label><input type="text" id="edit_flightNumber"></div>
+                    <div><label>Направление</label><input type="text" id="edit_destination"></div>
+                    <div><label>Код</label><input type="text" id="edit_iataCode"></div>
+                </div>
+                <div class="form-row">
+                    <div><label>Время вылета</label><input type="datetime-local" id="edit_departureTime"></div>
+                    <div><label>Ожидаемое</label><input type="datetime-local" id="edit_expectedTime"></div>
+                </div>
+                <div class="form-row">
+                    <div><label>Начало регистрации</label><input type="datetime-local" id="edit_regStart"></div>
+                    <div><label>Конец регистрации</label><input type="datetime-local" id="edit_regEnd"></div>
+                    <div><label>Начало посадки</label><input type="datetime-local" id="edit_boardingStart"></div>
+                    <div><label>Конец посадки</label><input type="datetime-local" id="edit_boardingEnd"></div>
+                </div>
+                <button onclick="saveEdit()" class="btn">💾 Сохранить</button>
+                <button onclick="cancelEdit()" class="btn" style="background:#666">❌ Отмена</button>
+            </div>
+        `;
+        renderAdminList();
         document.getElementById('addForm')?.addEventListener('submit', addFlight);
     }
     
+    // Добавление
     async function addFlight(e) {
         e.preventDefault();
         const flight = {
-            flightNumber: document.getElementById('fn').value,
-            destination: document.getElementById('dest').value,
-            iataCode: document.getElementById('code').value,
-            departureTime: document.getElementById('dt').value,
-            expectedTime: document.getElementById('exp').value || '',
-            regStart: document.getElementById('rs').value || '',
-            regEnd: document.getElementById('re').value || '',
-            boardingStart: document.getElementById('bs').value || '',
-            boardingEnd: document.getElementById('be').value || ''
+            flightNumber: document.getElementById('flightNumber').value,
+            destination: document.getElementById('destination').value,
+            iataCode: document.getElementById('iataCode').value,
+            departureTime: document.getElementById('departureTime').value,
+            expectedTime: document.getElementById('expectedTime').value || '',
+            regStart: document.getElementById('regStart').value || '',
+            regEnd: document.getElementById('regEnd').value || '',
+            boardingStart: document.getElementById('boardingStart').value || '',
+            boardingEnd: document.getElementById('boardingEnd').value || ''
         };
-        await fetch(API_URL, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(flight) });
-        alert('Добавлено!');
-        loadFromSheets();
-        renderAdmin();
-        e.target.reset();
+        try {
+            const res = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(flight)
+            });
+            const result = await res.json();
+            if(result.success) {
+                alert('✅ Рейс добавлен!');
+                loadFlights();
+                e.target.reset();
+            } else {
+                alert('Ошибка: ' + result.error);
+            }
+        } catch(e) {
+            alert('Ошибка: ' + e.message);
+        }
     }
     
-    async function openEdit(id) {
-        const f = flights.find(f=>f.id===id);
+    // Открыть редактирование
+    function openEdit(id) {
+        const f = flights.find(f => f.id === id);
         if(!f) return;
         editId = id;
-        document.getElementById('e_fn').value = f.flightNumber;
-        document.getElementById('e_dest').value = f.destination;
-        document.getElementById('e_code').value = f.iataCode;
-        document.getElementById('e_dt').value = f.departureTime.slice(0,16);
-        document.getElementById('e_exp').value = f.expectedTime?.slice(0,16)||'';
-        document.getElementById('e_rs').value = f.regStart?.slice(0,16)||'';
-        document.getElementById('e_re').value = f.regEnd?.slice(0,16)||'';
-        document.getElementById('e_bs').value = f.boardingStart?.slice(0,16)||'';
-        document.getElementById('e_be').value = f.boardingEnd?.slice(0,16)||'';
-        document.getElementById('editBlock').classList.remove('hidden');
+        document.getElementById('edit_flightNumber').value = f.flightNumber;
+        document.getElementById('edit_destination').value = f.destination;
+        document.getElementById('edit_iataCode').value = f.iataCode;
+        document.getElementById('edit_departureTime').value = f.departureTime.slice(0,16);
+        document.getElementById('edit_expectedTime').value = f.expectedTime ? f.expectedTime.slice(0,16) : '';
+        document.getElementById('edit_regStart').value = f.regStart ? f.regStart.slice(0,16) : '';
+        document.getElementById('edit_regEnd').value = f.regEnd ? f.regEnd.slice(0,16) : '';
+        document.getElementById('edit_boardingStart').value = f.boardingStart ? f.boardingStart.slice(0,16) : '';
+        document.getElementById('edit_boardingEnd').value = f.boardingEnd ? f.boardingEnd.slice(0,16) : '';
+        document.getElementById('editPanel').classList.remove('hidden');
     }
     
+    // Сохранить редактирование
     async function saveEdit() {
         const flight = {
             id: editId,
-            flightNumber: document.getElementById('e_fn').value,
-            destination: document.getElementById('e_dest').value,
-            iataCode: document.getElementById('e_code').value,
-            departureTime: document.getElementById('e_dt').value,
-            expectedTime: document.getElementById('e_exp').value || '',
-            regStart: document.getElementById('e_rs').value || '',
-            regEnd: document.getElementById('e_re').value || '',
-            boardingStart: document.getElementById('e_bs').value || '',
-            boardingEnd: document.getElementById('e_be').value || ''
+            flightNumber: document.getElementById('edit_flightNumber').value,
+            destination: document.getElementById('edit_destination').value,
+            iataCode: document.getElementById('edit_iataCode').value,
+            departureTime: document.getElementById('edit_departureTime').value,
+            expectedTime: document.getElementById('edit_expectedTime').value || '',
+            regStart: document.getElementById('edit_regStart').value || '',
+            regEnd: document.getElementById('edit_regEnd').value || '',
+            boardingStart: document.getElementById('edit_boardingStart').value || '',
+            boardingEnd: document.getElementById('edit_boardingEnd').value || ''
         };
-        await fetch(API_URL, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(flight) });
-        alert('Сохранено!');
-        cancelEdit();
-        loadFromSheets();
-        renderAdmin();
+        try {
+            const res = await fetch(API_URL, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(flight)
+            });
+            const result = await res.json();
+            if(result.success) {
+                alert('✅ Сохранено!');
+                cancelEdit();
+                loadFlights();
+            } else {
+                alert('Ошибка: ' + result.error);
+            }
+        } catch(e) {
+            alert('Ошибка: ' + e.message);
+        }
     }
     
-    function cancelEdit() { document.getElementById('editBlock').classList.add('hidden'); editId = null; }
-    async function deleteFlight(id) { if(confirm('Удалить?')) { await fetch(API_URL+'?id='+id, { method: 'DELETE' }); loadFromSheets(); renderAdmin(); } }
-    function showPanel(p) { document.querySelectorAll('.panel').forEach(i=>i.classList.remove('active')); document.querySelectorAll('.tab').forEach(i=>i.classList.remove('active')); document.getElementById(p+'Panel').classList.add('active'); event.target.classList.add('active'); if(p==='admin') renderAdmin(); }
-    function updateTime() { document.getElementById('time').innerHTML = `🕐 ${getEkbTime().toLocaleString('ru-RU')} (Екатеринбург, GMT+5)`; renderTablo(); }
+    function cancelEdit() {
+        document.getElementById('editPanel').classList.add('hidden');
+        editId = null;
+    }
     
-    loadFromSheets();
+    // Удаление
+    async function deleteFlight(id) {
+        if(!confirm('Удалить рейс?')) return;
+        try {
+            const res = await fetch(`${API_URL}?id=${id}`, { method: 'DELETE' });
+            const result = await res.json();
+            if(result.success) {
+                alert('🗑️ Рейс удалён!');
+                loadFlights();
+            } else {
+                alert('Ошибка: ' + result.error);
+            }
+        } catch(e) {
+            alert('Ошибка: ' + e.message);
+        }
+    }
+    
+    function showPanel(panel) {
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        if(panel === 'tablo') {
+            document.getElementById('tabloPanel').classList.add('active');
+            document.querySelector('.tab-btn').classList.add('active');
+        } else {
+            document.getElementById('adminPanel').classList.add('active');
+            document.querySelectorAll('.tab-btn')[1].classList.add('active');
+            renderAdmin();
+        }
+    }
+    
+    function updateTime() {
+        const now = getEkbTime();
+        document.getElementById('currentTime').innerHTML = `🕐 GMT+5 (Екатеринбург): ${now.toLocaleString('ru-RU')}`;
+        renderTablo();
+        if(document.getElementById('adminList')) renderAdminList();
+    }
+    
+    loadFlights();
     updateTime();
     setInterval(updateTime, 1000);
-    setInterval(loadFromSheets, 30000);
+    setInterval(loadFlights, 30000);
 </script>
 </body>
 </html>
