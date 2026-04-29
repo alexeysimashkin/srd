@@ -1,0 +1,12 @@
+{
+  "name": "airport-svx-board",
+  "version": "1.0.0",
+  "description": "Онлайн-табло аэропорта Кольцово (SVX)",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "node-fetch": "2.6.7"
+  }
+}
