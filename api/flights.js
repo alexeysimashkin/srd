@@ -3,27 +3,24 @@ const https = require('https');
 
 // ⚠️ ЗАМЕНИ НА СВОИ ДАННЫЕ
 const TELEGRAM_BOT_TOKEN = '7783850319:AAFofR20uzC4cMlgU2BWv952K0cKivbwREA';
-const TELEGRAM_CHAT_ID = '-1003733046710'; // ID канала с минусом
+const TELEGRAM_CHAT_ID = '-1003733046710'; // ВАЖНО: с минусом
 
-// Проверяем, что токен и chat_id заданы
-if (TELEGRAM_BOT_TOKEN === 'ТВОЙ_ТОКЕН_БОТА' || TELEGRAM_CHAT_ID === '-100XXXXXXXXXX') {
-    console.error('❌ ОШИБКА: Не заданы TELEGRAM_BOT_TOKEN и TELEGRAM_CHAT_ID в api/flights.js');
-}
-
-// Храним ID последнего сообщения с данными в памяти сервера
-let cachedMessageId = null;
-let cachedFlights = [];
+// Храним ID сообщения в глобальной переменной
+let messageId = null;
 
 // Функция для запросов к Telegram API
 function telegramRequest(method, body) {
     return new Promise((resolve, reject) => {
         const url = `/bot${TELEGRAM_BOT_TOKEN}/${method}`;
+        const bodyStr = body ? JSON.stringify(body) : '';
+        
         const options = {
             hostname: 'api.telegram.org',
             path: url,
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(bodyStr)
             }
         };
 
@@ -33,10 +30,11 @@ function telegramRequest(method, body) {
             res.on('end', () => {
                 try {
                     const json = JSON.parse(data);
+                    console.log(`Telegram ${method}:`, json.ok ? 'OK' : 'FAIL', json.ok ? '' : json.description);
                     if (json.ok) {
                         resolve(json.result);
                     } else {
-                        reject(new Error(`Telegram API error: ${json.description}`));
+                        reject(new Error(json.description || 'Unknown error'));
                     }
                 } catch (e) {
                     reject(new Error(`Parse error: ${data.substring(0, 200)}`));
@@ -45,125 +43,130 @@ function telegramRequest(method, body) {
         });
 
         req.on('error', (err) => {
-            reject(new Error(`Request error: ${err.message}`));
+            reject(new Error(`Network error: ${err.message}`));
         });
 
-        if (body) {
-            req.write(JSON.stringify(body));
-        }
+        req.write(bodyStr);
         req.end();
     });
 }
 
-// Получить последнее сообщение из канала
-async function getLastMessage() {
+// Отправить новое сообщение в канал
+async function sendNewMessage(text) {
     try {
-        // Получаем обновления только от канала
-        let offset = -1;
-        
-        // Пробуем получить последние 5 сообщений
+        const result = await telegramRequest('sendMessage', {
+            chat_id: TELEGRAM_CHAT_ID,
+            text: text,
+            disable_notification: true
+        });
+        messageId = result.message_id;
+        console.log('✅ Новое сообщение отправлено, ID:', messageId);
+        return true;
+    } catch (err) {
+        console.error('❌ sendNewMessage error:', err.message);
+        throw err;
+    }
+}
+
+// Редактировать сообщение в канале
+async function editMessage(text) {
+    if (!messageId) {
+        console.log('Нет messageId, отправляем новое сообщение');
+        return await sendNewMessage(text);
+    }
+    
+    try {
+        await telegramRequest('editMessageText', {
+            chat_id: TELEGRAM_CHAT_ID,
+            message_id: messageId,
+            text: text
+        });
+        console.log('✅ Сообщение отредактировано, ID:', messageId);
+        return true;
+    } catch (err) {
+        // Если не удалось отредактировать (например, сообщение удалено)
+        console.log('⚠ Не удалось редактировать:', err.message);
+        return await sendNewMessage(text);
+    }
+}
+
+// Прочитать данные из канала
+async function readFlights() {
+    try {
+        // Получаем последние обновления
         const updates = await telegramRequest('getUpdates', {
-            offset: offset,
-            limit: 5,
+            offset: -1,
+            limit: 10,
             timeout: 0,
             allowed_updates: ['channel_post']
         });
 
+        // Ищем последнее сообщение из нашего канала
         if (updates && updates.length > 0) {
-            // Берём последнее сообщение
-            const lastUpdate = updates[updates.length - 1];
-            if (lastUpdate.channel_post && 
-                lastUpdate.channel_post.chat.id.toString() === TELEGRAM_CHAT_ID.replace('-100', '')) {
-                cachedMessageId = lastUpdate.channel_post.message_id;
-                return lastUpdate.channel_post;
-            }
-        }
-
-        // Если обновлений нет, пробуем отправить тестовое сообщение
-        console.log('Нет обновлений, пробуем найти сообщения...');
-        
-        // Отправляем новое пустое сообщение, чтобы инициализировать
-        const sentMsg = await telegramRequest('sendMessage', {
-            chat_id: TELEGRAM_CHAT_ID,
-            text: JSON.stringify({ flights: [] })
-        });
-        
-        cachedMessageId = sentMsg.message_id;
-        return sentMsg;
-        
-    } catch (err) {
-        console.error('getLastMessage error:', err.message);
-        throw err;
-    }
-}
-
-// Прочитать данные
-async function readFlights() {
-    try {
-        const message = await getLastMessage();
-        
-        if (message && message.text) {
-            try {
-                const data = JSON.parse(message.text);
-                if (data && Array.isArray(data.flights)) {
-                    cachedFlights = data.flights;
-                    return data.flights;
+            for (let i = updates.length - 1; i >= 0; i--) {
+                const update = updates[i];
+                if (update.channel_post) {
+                    const chatId = update.channel_post.chat.id;
+                    // Проверяем, что это наш канал (Telegram возвращает ID без -100 для каналов в updates)
+                    const expectedId = TELEGRAM_CHAT_ID.replace('-100', '');
+                    if (chatId.toString() === expectedId || chatId.toString() === TELEGRAM_CHAT_ID) {
+                        messageId = update.channel_post.message_id;
+                        
+                        if (update.channel_post.text) {
+                            try {
+                                const data = JSON.parse(update.channel_post.text);
+                                if (data && Array.isArray(data.flights)) {
+                                    console.log('📖 Прочитано рейсов:', data.flights.length);
+                                    return data.flights;
+                                }
+                            } catch (e) {
+                                console.log('⚠ Невалидный JSON в сообщении');
+                            }
+                        }
+                        break;
+                    }
                 }
-            } catch (e) {
-                console.log('Невалидный JSON в сообщении, создаём новый');
             }
         }
-        
-        // Если данные битые, создаём новые
-        await saveFlights([]);
+
+        // Если данных нет, создаём пустой массив
+        console.log('📝 Данные не найдены, создаём новые');
+        const emptyData = JSON.stringify({ flights: [] });
+        await sendNewMessage(emptyData);
         return [];
+        
     } catch (err) {
-        console.error('readFlights error:', err.message);
-        // Возвращаем кэш если есть
-        return cachedFlights || [];
+        console.error('❌ readFlights error:', err.message);
+        return [];
     }
 }
 
-// Сохранить данные
+// Сохранить данные в канал
 async function saveFlights(flights) {
     try {
         const jsonStr = JSON.stringify({ flights: flights });
         
-        if (cachedMessageId) {
-            // Редактируем существующее сообщение
+        // Пробуем редактировать
+        if (messageId) {
             try {
-                await telegramRequest('editMessageText', {
-                    chat_id: TELEGRAM_CHAT_ID,
-                    message_id: cachedMessageId,
-                    text: jsonStr
-                });
-                console.log('✅ Сообщение обновлено, message_id:', cachedMessageId);
+                await editMessage(jsonStr);
                 return true;
-            } catch (editErr) {
-                console.log('Не удалось редактировать:', editErr.message);
-                cachedMessageId = null;
+            } catch (err) {
+                console.log('⚠ Не удалось сохранить через edit, пробуем новое сообщение');
             }
         }
         
-        // Отправляем новое сообщение
-        const sent = await telegramRequest('sendMessage', {
-            chat_id: TELEGRAM_CHAT_ID,
-            text: jsonStr
-        });
-        
-        cachedMessageId = sent.message_id;
-        console.log('✅ Новое сообщение отправлено, message_id:', cachedMessageId);
+        // Если редактирование не сработало - отправляем новое
+        await sendNewMessage(jsonStr);
         return true;
         
     } catch (err) {
-        console.error('saveFlights error:', err.message);
+        console.error('❌ saveFlights error:', err.message);
         throw err;
     }
 }
 
-// API Handler для Vercel
 module.exports = async (req, res) => {
-    // CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -172,104 +175,81 @@ module.exports = async (req, res) => {
         return res.status(200).end();
     }
 
+    const { method } = req;
+
     try {
-        // GET - получить все рейсы
-        if (req.method === 'GET') {
+        // GET - получить рейсы
+        if (method === 'GET') {
             const flights = await readFlights();
-            return res.status(200).json({ flights });
+            return res.status(200).json({ flights: flights || [] });
         }
 
         // POST - добавить рейс
-        if (req.method === 'POST') {
+        if (method === 'POST') {
             const flights = await readFlights();
             const flight = req.body;
             
-            // Валидация
-            if (!flight.airline || !flight.flightNumber || !flight.destination || !flight.iata) {
+            // Проверка обязательных полей
+            if (!flight.airline || !flight.flightNumber || !flight.destination) {
                 return res.status(400).json({ 
-                    error: 'Не все поля заполнены',
-                    required: ['airline', 'flightNumber', 'destination', 'iata']
+                    error: 'Не все обязательные поля заполнены',
+                    received: flight
                 });
             }
 
-            // Добавляем ID и временную метку
             flight.id = Date.now().toString();
             flight.createdAt = new Date().toISOString();
-            
-            // Устанавливаем начальный статус
-            if (!flight.status) {
-                flight.status = 'scheduled';
-                flight.statusText = 'По расписанию';
-            }
             
             flights.push(flight);
             await saveFlights(flights);
             
-            console.log('✅ Рейс добавлен:', flight.flightNumber);
+            console.log('✅ Добавлен рейс:', flight.flightNumber, 'Всего:', flights.length);
             return res.status(200).json({ 
                 success: true, 
-                flight,
-                message: 'Рейс добавлен'
+                flight: flight,
+                total: flights.length
             });
         }
 
         // PUT - обновить рейс
-        if (req.method === 'PUT') {
+        if (method === 'PUT') {
             const flights = await readFlights();
-            const updatedFlight = req.body;
-            const id = updatedFlight.id;
+            const updated = req.body;
             
-            if (!id) {
-                return res.status(400).json({ error: 'Не указан ID рейса' });
-            }
-            
-            const index = flights.findIndex(f => f.id === id);
+            const index = flights.findIndex(f => f.id === updated.id);
             if (index === -1) {
                 return res.status(404).json({ error: 'Рейс не найден' });
             }
-            
-            flights[index] = { ...flights[index], ...updatedFlight };
+
+            flights[index] = { ...flights[index], ...updated };
             await saveFlights(flights);
             
-            console.log('✅ Рейс обновлён:', flights[index].flightNumber);
-            return res.status(200).json({ 
-                success: true, 
-                flight: flights[index],
-                message: 'Рейс обновлён'
-            });
+            return res.status(200).json({ success: true, flight: flights[index] });
         }
 
         // DELETE - удалить рейс
-        if (req.method === 'DELETE') {
+        if (method === 'DELETE') {
             const flights = await readFlights();
-            const id = req.query.id;
-            
-            if (!id) {
-                return res.status(400).json({ error: 'Не указан ID рейса' });
-            }
+            const { id } = req.query;
             
             const index = flights.findIndex(f => f.id === id);
             if (index === -1) {
                 return res.status(404).json({ error: 'Рейс не найден' });
             }
-            
-            const deleted = flights.splice(index, 1)[0];
+
+            flights.splice(index, 1);
             await saveFlights(flights);
             
-            console.log('🗑 Рейс удалён:', deleted.flightNumber);
-            return res.status(200).json({ 
-                success: true,
-                message: 'Рейс удалён'
-            });
+            return res.status(200).json({ success: true });
         }
 
         return res.status(405).json({ error: 'Метод не поддерживается' });
         
     } catch (err) {
-        console.error('❌ API Error:', err.message);
+        console.error('❌ API Error:', err);
         return res.status(500).json({ 
             error: 'Ошибка сервера',
-            details: err.message 
+            message: err.message
         });
     }
 };
